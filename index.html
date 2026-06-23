@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Cache Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; padding: 40px; text-align: center; }
+        .dashboard { background: white; max-width: 600px; margin: auto; padding: 30px; border-radius: 10px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+        select, button, input { padding: 10px; font-size: 16px; margin: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        button { cursor: pointer; color: white; border: none; font-weight: bold; }
+        .btn-slow { background-color: #d9534f; } 
+        .btn-fast { background-color: #5cb85c; } 
+        .btn-add { background-color: #007bff; width: 100%; margin-left: 0;}
+        .result-box { margin-top: 30px; padding: 20px; background: #eef2f3; border-radius: 8px; font-size: 18px; }
+        .time { font-weight: bold; color: #007bff; }
+        .loading { display: none; color: gray; font-style: italic; }
+        .add-section { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard">
+        <h2>Live Stock Price Checker</h2>
+        <p>Select a stock to check how fast your custom database is.</p>
+        
+        <select id="ticker">
+            <option value="AAPL">Apple (AAPL)</option>
+            <option value="GOOGL">Google (GOOGL)</option>
+            <option value="TSLA">Tesla (TSLA)</option>
+        </select>
+        <br>
+        
+        <button class="btn-slow" onclick="fetchData('/api/direct')">Fetch (Direct from DB)</button>
+        <button class="btn-fast" onclick="fetchData('/api/cache')">Fetch (Use C++ Cache)</button>
+
+        <p id="loading" class="loading">Loading data...</p>
+
+        <div class="result-box" id="result-box">
+            <p><strong>Price:</strong> <span id="price">-</span></p>
+            <p><strong>Source:</strong> <span id="source">-</span></p>
+            <p><strong>Time Taken:</strong> <span id="time" class="time">-</span></p>
+        </div>
+
+        <div class="add-section">
+            <h3>Add a New Stock to Database</h3>
+            <input type="text" id="newTicker" placeholder="Ticker (e.g. AMZN)" style="width: 40%;">
+            <input type="number" id="newPrice" placeholder="Price (e.g. 120.50)" style="width: 40%;">
+            <button class="btn-add" onclick="addNewStock()">Add Stock</button>
+        </div>
+    </div>
+
+    <script>
+        async function fetchData(endpoint) {
+            const ticker = document.getElementById('ticker').value;
+            const url = `http://127.0.0.1:5000${endpoint}?ticker=${ticker}`;
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result-box').style.opacity = '0.5';
+
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const endTime = performance.now();
+                const timeTaken = (endTime - startTime).toFixed(0);
+
+                document.getElementById('price').innerText = "$" + data.price;
+                document.getElementById('source').innerText = data.source;
+                document.getElementById('time').innerText = timeTaken + " ms";
+            } catch (error) {
+                alert("Error connecting to Python server.");
+            }
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('result-box').style.opacity = '1';
+        }
+
+        // --- NEW: JavaScript to send new stock data ---
+        async function addNewStock() {
+            const tickerInput = document.getElementById('newTicker').value.toUpperCase();
+            const priceInput = document.getElementById('newPrice').value;
+
+            if (tickerInput === "" || priceInput === "") {
+                alert("Please fill in both the ticker and the price.");
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:5000/api/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker: tickerInput, price: priceInput })
+                });
+
+                const data = await response.json();
+                alert(data.message);
+
+                // Add the new stock to the dropdown menu so we can search for it
+                const selectMenu = document.getElementById('ticker');
+                const newOption = document.createElement('option');
+                newOption.value = tickerInput;
+                newOption.innerText = `${tickerInput} (New)`;
+                selectMenu.appendChild(newOption);
+                selectMenu.value = tickerInput; // Select it automatically
+
+                // Clear the input boxes
+                document.getElementById('newTicker').value = "";
+                document.getElementById('newPrice').value = "";
+
+            } catch (error) {
+                alert("Failed to add stock.");
+            }
+        }
+    </script>
+</body>
+</html>
