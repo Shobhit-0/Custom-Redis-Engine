@@ -51,12 +51,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // 1. Send the length, then the command
+    // Send the length, then the command
     uint32_t len = command.length();
     write_all(fd, (char*)&len, 4);
     write_all(fd, command.c_str(), len);
 
-    // 2. Read the reply length, then the reply
+    // Read the reply length, then the reply
     uint32_t reply_len = 0;
     if (read_full(fd, (char*)&reply_len, 4)) {
         char buffer[4096] = {0};
