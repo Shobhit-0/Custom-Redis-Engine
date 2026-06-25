@@ -12,9 +12,8 @@
 #include <poll.h>
 #include <ctime>
 
-// ==========================================
-// 1. CUSTOM TREAP ENGINE (Key-Value & TTL)
-// ==========================================
+
+// CUSTOM TREAP ENGINE (Key-Value & TTL)
 struct Node {
     std::string key;
     std::string value;
@@ -87,11 +86,10 @@ public:
     }
 };
 
-// ==========================================
-// 2. GLOBAL DATABASES & AOF PERSISTENCE
-// ==========================================
+
+// GLOBAL DATABASES & AOF PERSISTENCE
 Treap kv_store;
-std::map<std::string, std::deque<std::string>> queue_store; // NEW: Message Queue Database
+std::map<std::string, std::deque<std::string>> queue_store; 
 std::ofstream aof_writer;
 
 // Log operations that change data to disk instantly
@@ -100,9 +98,8 @@ void append_to_aof(const std::string& command) {
     aof_writer.flush(); // Force write to hard drive immediately
 }
 
-// ==========================================
+
 // 3. COMMAND DISPATCHER
-// ==========================================
 // This handles all logic, making the network code clean
 std::string execute_command(const std::string& raw_message, bool is_replaying = false) {
     std::stringstream ss(raw_message);
@@ -128,7 +125,6 @@ std::string execute_command(const std::string& raw_message, bool is_replaying = 
         if (!is_replaying) append_to_aof(raw_message);
         return "Deleted\n";
     }
-    // NEW COMMANDS: Queue Operations
     else if (command == "LPUSH") {
         ss >> key >> value;
         queue_store[key].push_front(value);
@@ -153,16 +149,15 @@ void replay_aof() {
     int count = 0;
     while (std::getline(aof_reader, line)) {
         if (!line.empty()) {
-            execute_command(line, true); // true = don't write it back to the file!
+            execute_command(line, true); 
             count++;
         }
     }
     std::cout << "[AOF] Replayed " << count << " commands to restore database state.\n";
 }
 
-// ==========================================
+
 // 4. NETWORK HELPERS
-// ==========================================
 bool read_full(int fd, char* buf, int n) {
     int total = 0;
     while (total < n) {
@@ -183,11 +178,10 @@ bool write_all(int fd, const char* buf, int n) {
     return true;
 }
 
-// ==========================================
+
 // 5. EVENT LOOP (MAIN)
-// ==========================================
 int main() {
-    replay_aof(); // Restore memory before opening the server
+    replay_aof();
     
     // Open the AOF file in Append Mode
     aof_writer.open("database.aof", std::ios_base::app);
@@ -234,7 +228,6 @@ int main() {
                 char buffer[4096] = {0};
                 if (!read_full(current_fd, buffer, len)) continue;
 
-                // Pass the raw text to the dispatcher
                 std::string message(buffer, len);
                 std::string reply = execute_command(message);
 
