@@ -4,7 +4,7 @@ import time
 
 app = Flask(__name__)
 
-# This is our fake "Main Hard Drive Database"
+# Database
 SLOW_DB = {
     "AAPL": "150.25",
     "GOOGL": "2800.50",
@@ -34,7 +34,7 @@ def ask_cpp_server(command_string):
 @app.route('/api/direct', methods=['GET'])
 def get_direct():
     ticker = request.args.get('ticker')
-    time.sleep(1.5) # Simulate slow database
+    time.sleep(1.5) 
     price = SLOW_DB.get(ticker, "Not Found")
     return jsonify({"price": price, "source": "Slow DB"})
 
@@ -56,14 +56,13 @@ def get_cached():
         
     return jsonify({"price": price, "source": "Slow DB (Saved to Cache)"})
 
-# --- NEW: Route to add a stock to the Slow DB ---
+
 @app.route('/api/add', methods=['POST'])
 def add_stock():
     data = request.json
     ticker = data.get('ticker').upper()
     price = data.get('price')
     
-    # Save it to our dictionary
     SLOW_DB[ticker] = str(price)
     
     return jsonify({"status": "success", "message": f"Added {ticker} to the database!"})
