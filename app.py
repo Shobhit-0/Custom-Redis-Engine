@@ -4,12 +4,19 @@ import time
 
 app = Flask(__name__)
 
-# Database
-SLOW_DB = {
-    "AAPL": "150.25",
-    "GOOGL": "2800.50",
-    "TSLA": "900.10"
-}
+SLOW_DB = []
+
+print("Loading slow database... this will take a few seconds.")
+
+# Add 5 million fake stocks to make the list huge
+for i in range(5000000):
+    SLOW_DB.append({"ticker": f"DUMMY{i}", "price": "1.00"})
+
+SLOW_DB.append({"ticker": "AAPL", "price": "150.25"})
+SLOW_DB.append({"ticker": "GOOGL", "price": "2800.50"})
+SLOW_DB.append({"ticker": "TSLA", "price": "900.10"})
+
+print("Database loaded!")
 
 def ask_cpp_server(command_string):
     try:
@@ -34,8 +41,13 @@ def ask_cpp_server(command_string):
 @app.route('/api/direct', methods=['GET'])
 def get_direct():
     ticker = request.args.get('ticker')
-    time.sleep(1.5) 
-    price = SLOW_DB.get(ticker, "Not Found")
+    
+    price = "Not Found"
+    for item in SLOW_DB:
+        if item["ticker"] == ticker:
+            price = item["price"]
+            break 
+            
     return jsonify({"price": price, "source": "Slow DB"})
 
 @app.route('/api/cache', methods=['GET'])
@@ -48,8 +60,12 @@ def get_cached():
     if cached_price != "(nil)" and cached_price != "Error":
         return jsonify({"price": cached_price, "source": "C++ Cache"})
     
-    time.sleep(1.5) 
-    price = SLOW_DB.get(ticker, "Not Found")
+   
+    price = "Not Found"
+    for item in SLOW_DB:
+        if item["ticker"] == ticker:
+            price = item["price"]
+            break 
     
     if price != "Not Found":
         ask_cpp_server(f"SET {key} {price} 30")
@@ -63,7 +79,8 @@ def add_stock():
     ticker = data.get('ticker').upper()
     price = data.get('price')
     
-    SLOW_DB[ticker] = str(price)
+    
+    SLOW_DB.append({"ticker": ticker, "price": str(price)})
     
     return jsonify({"status": "success", "message": f"Added {ticker} to the database!"})
 
